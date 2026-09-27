@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin Dashboard | Vineet E-Service</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-card: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --accent: #6366f1;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .header {
+            background: #1e293b;
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 24px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background: #f1f5f9;
+            padding: 16px 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .status-select {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            background: white;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .status-select:focus {
+            border-color: var(--accent);
+        }
+
+        .status-PLACED { color: #3b82f6; border-color: #bfdbfe; background: #eff6ff; }
+        .status-CONFIRMED { color: #8b5cf6; border-color: #ddd6fe; background: #f5f3ff; }
+        .status-SHIPPED { color: #f59e0b; border-color: #fde68a; background: #fffbeb; }
+        .status-DELIVERED { color: #22c55e; border-color: #bbf7d0; background: #f0fdf4; }
+        .status-CANCELLED { color: #ef4444; border-color: #fecaca; background: #fef2f2; }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1e293b;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Admin Dashboard</h1>
+        <a href="/" style="color: #cbd5e1; text-decoration: none; font-size: 14px;">&larr; Back to Store</a>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>Customer</th>
+                        <th>Service</th>
+                        <th>Qty</th>
+                        <th>Total</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="bookings-body">
+                    <tr><td colspan="7" style="text-align: center; padding: 40px; color: #64748b;">Loading bookings...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Status updated successfully</div>
+
+    <script>
+        const currency = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+        const validTransitions = {
+            'PLACED': ['PLACED', 'CONFIRMED', 'CANCELLED'],
+            'CONFIRMED': ['CONFIRMED', 'SHIPPED', 'CANCELLED'],
+            'SHIPPED': ['SHIPPED', 'DELIVERED'],
+            'DELIVERED': ['DELIVERED'],
+            'CANCELLED': ['CANCELLED']
+        };
+
+        async function fetchBookings() {
+            try {
+                const response = await fetch('/api/admin/bookings');
+                const bookings = await response.json();
+                renderBookings(bookings);
+            } catch (error) {
+                document.getElementById('bookings-body').innerHTML = `<tr><td colspan="7" style="color: red; text-align: center;">Failed to load bookings</td></tr>`;
+            }
+        }
+
+        function renderBookings(bookings) {
+            const tbody = document.getElementById('bookings-body');
+            
+            if (bookings.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #64748b;">No bookings found.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = bookings.map(b => {
+                const date = new Date(b.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                
+                // Only show valid next states in the dropdown
+                const options = ['PLACED', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED']
+                    .map(status => {
+                        const isCurrent = status === b.status;
+                        const isAllowed = validTransitions[b.status]?.includes(status);
+                        if (!isCurrent && !isAllowed) return '';
+                        return `<option value="${status}" ${isCurrent ? 'selected' : ''}>${status}</option>`;
+                    }).join('');
+
+                const isFinal = b.status === 'DELIVERED' || b.status === 'CANCELLED';
+
+                return `
+                    <tr>
+                        <td style="font-family: 'Space Grotesk'; font-weight: 600;">${b.reference}</td>
+                        <td>
+                            <div style="font-weight: 500;">${b.customerName}</div>
+                            <div style="font-size: 12px; color: #64748b;">${b.customerEmail}</div>
+                        </td>
+                        <td>${b.productName}</td>
+                        <td>${b.quantity}</td>
+                        <td style="font-weight: 600;">${currency.format(b.total)}</td>
+                        <td style="color: #64748b;">${date}</td>
+                        <td>
+                            <select 
+                                class="status-select status-${b.status}" 
+                                onchange="updateStatus(${b.id}, this)"
+                                ${isFinal ? 'disabled' : ''}
+                            >
+                                ${options}
+                            </select>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function updateStatus(id, selectElement) {
+            const newStatus = selectElement.value;
+            const originalStatus = Array.from(selectElement.options).find(opt => opt.defaultSelected).value;
+            
+            selectElement.disabled = true;
+            
+            try {
+                const response = await fetch(`/api/admin/bookings/${id}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to update status');
+                }
+                
+                const updatedBooking = await response.json();
+                
+                // Update select styling and original value
+                selectElement.className = `status-select status-${updatedBooking.status}`;
+                Array.from(selectElement.options).forEach(opt => opt.defaultSelected = opt.value === updatedBooking.status);
+                
+                showToast(`Order ${updatedBooking.reference} marked as ${updatedBooking.status}`);
+                
+                // Re-render to update the allowed transition options
+                fetchBookings();
+            } catch (error) {
+                alert(error.message);
+                selectElement.value = originalStatus; // revert on failure
+            } finally {
+                selectElement.disabled = false;
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        fetchBookings();
+    </script>
+</body>
+</html>
