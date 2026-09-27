@@ -1,45 +1,45 @@
 package vineet.order_management.service;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.MailException;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.Map;
 
 import vineet.order_management.model.Booking;
 
 @Service
 public class BookingEmailService {
-    private final ObjectProvider<JavaMailSender> mailSenderProvider;
     private final boolean enabled;
     private final String fromAddress;
+    private final String apiKey;
+    private final HttpClient httpClient;
 
     public BookingEmailService(
-            ObjectProvider<JavaMailSender> mailSenderProvider,
             @Value("${app.mail.enabled:false}") boolean enabled,
-            @Value("${app.mail.from:no-reply@vineet-eservice.local}") String fromAddress) {
-        this.mailSenderProvider = mailSenderProvider;
+            @Value("${app.mail.from:no-reply@vineet-eservice.local}") String fromAddress,
+            @Value("${BREVO_API_KEY:}") String apiKey) {
         this.enabled = enabled;
         this.fromAddress = fromAddress;
+        this.apiKey = apiKey;
+        this.httpClient = HttpClient.newHttpClient();
     }
 
     public boolean sendConfirmation(Booking booking) {
-        JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
-        if (!enabled || mailSender == null) {
+        if (!enabled || apiKey == null || apiKey.isEmpty()) {
+            System.out.println("Email service is disabled or API key is missing.");
             return false;
         }
         
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             
             String status = booking.getStatus();
             String title = "Booking " + status.charAt(0) + status.substring(1).toLowerCase();
-            String subject = title + " #" + booking.getReference();
             String emoji = status.equals("CANCELLED") ? "❌" : (status.equals("DELIVERED") ? "📦" : (status.equals("SHIPPED") ? "🚚" : "🎉"));
+            String subject = title + " " + emoji;
             
             String statusBg = status.equals("CANCELLED") ? "#fecaca" : (status.equals("DELIVERED") ? "#c6f6d5" : (status.equals("SHIPPED") ? "#fde68a" : (status.equals("CONFIRMED") ? "#ddd6fe" : "#bfdbfe")));
             String statusColor = status.equals("CANCELLED") ? "#991b1b" : (status.equals("DELIVERED") ? "#22543d" : (status.equals("SHIPPED") ? "#92400e" : (status.equals("CONFIRMED") ? "#5b21b6" : "#1e40af")));
@@ -51,10 +51,6 @@ public class BookingEmailService {
                 case "DELIVERED" -> "Your booking has been successfully delivered.";
                 default -> "Your booking has been successfully placed. Here are your order details:";
             };
-            
-            helper.setFrom(fromAddress, "Vineet E-Service");
-            helper.setTo(booking.getAccount().getEmail());
-            helper.setSubject(subject + " " + emoji);
             
             String htmlContent = String.format("""
                 <!DOCTYPE html>
@@ -123,12 +119,41 @@ public class BookingEmailService {
                 booking.getStatus().toString(),
                 booking.getTotal());
                 
-            helper.setText(htmlContent, true); // true indicates HTML
+            String escapedHtmlContent = htmlContent.replace("\"", "\\\"").replace("\n", "");
             
-            mailSender.send(message);
-            return true;
-        } catch (MessagingException | MailException | java.io.UnsupportedEncodingException exception) {
-            System.err.println("Failed to send HTML email: " + exception.getMessage());
+            String requestBody = String.format("""
+                {
+                  "sender": { "name": "Vineet E-Service", "email": "%s" },
+                  "to": [ { "email": "%s", "name": "%s" } ],
+                  "subject": "%s",
+                  "htmlContent": "%s"
+                }
+                """, 
+                fromAddress, 
+                booking.getAccount().getEmail(), 
+                booking.getAccount().getName(), 
+                subject, 
+                escapedHtmlContent);
+            
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.brevo.com/v3/smtp/email"))
+                    .header("accept", "application/json")
+                    .header("api-key", apiKey)
+                    .header("content-type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                System.out.println("HTTP Email sent successfully: " + response.body());
+                return true;
+            } else {
+                System.err.println("Failed to send HTTP email. Status: " + response.statusCode() + " Body: " + response.body());
+                return false;
+            }
+        } catch (Exception exception) {
+            System.err.println("Exception while sending HTTP email: " + exception.getMessage());
             exception.printStackTrace();
             return false;
         }
