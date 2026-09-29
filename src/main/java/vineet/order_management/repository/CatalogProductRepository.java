@@ -19,4 +19,9 @@ public interface CatalogProductRepository extends JpaRepository<CatalogProduct, 
     @Query("update CatalogProduct product set product.stock = product.stock - :quantity "
             + "where product.id = :productId and product.stock >= :quantity")
     int reserveStock(@Param("productId") Long productId, @Param("quantity") int quantity);
+
+    @Modifying
+    @Query("update CatalogProduct product set product.stock = product.stock + :quantity "
+            + "where product.id = :productId")
+    int restoreStock(@Param("productId") Long productId, @Param("quantity") int quantity);
 }

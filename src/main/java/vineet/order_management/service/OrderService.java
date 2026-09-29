@@ -55,7 +55,7 @@ public class OrderService {
         }
         CatalogProduct product = products.findById(productId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Service not found."));
-        if (products.reserveStock(productId, quantity) != 1) {
+        if (product.getStock() < quantity) {
             throw new ApiException(HttpStatus.CONFLICT, "There are not enough slots for that quantity.");
         }
         String reference = "ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
@@ -85,6 +85,18 @@ public class OrderService {
         OrderStatus oldStatus = OrderStatus.valueOf(order.getStatus());
         if (!validator.canTransition(oldStatus, newStatus)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Cannot transition from " + oldStatus + " to " + newStatus);
+        }
+        
+        if (newStatus == OrderStatus.CONFIRMED && oldStatus == OrderStatus.PLACED) {
+            if (products.reserveStock(order.getProduct().getId(), order.getQuantity()) != 1) {
+                throw new ApiException(HttpStatus.CONFLICT, "There are not enough slots to confirm this order.");
+            }
+        }
+        
+        if (newStatus == OrderStatus.CANCELLED) {
+            if (oldStatus == OrderStatus.CONFIRMED || oldStatus == OrderStatus.SHIPPED || oldStatus == OrderStatus.DELIVERED) {
+                products.restoreStock(order.getProduct().getId(), order.getQuantity());
+            }
         }
         
         order.setStatus(newStatus.name());
