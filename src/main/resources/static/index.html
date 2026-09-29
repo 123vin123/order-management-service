@@ -1086,7 +1086,7 @@
 
 <body>
     <main class="page">
-        <section class="story" id="story-view" aria-labelledby="welcome-heading">
+        <section class="story" id="story-view" aria-labelledby="welcome-heading" hidden>
             <a class="brand" href="/" aria-label="Vineet E-Service home">
                 <span class="brand-mark" aria-hidden="true">V</span>
                 <span>Vineet E-Service</span>
@@ -1102,7 +1102,7 @@
             </footer>
         </section>
 
-        <section class="login-side" id="auth-view" aria-label="Sign in">
+        <section class="login-side" id="auth-view" aria-label="Sign in" hidden>
             <div class="login-panel">
                 <a class="brand" href="/" aria-label="Vineet E-Service home">
                     <span class="brand-mark" aria-hidden="true">V</span>
@@ -1481,9 +1481,17 @@
             window.location.reload();
         });
 
+        function showAuth() {
+            authView.hidden = false;
+            storyView.hidden = false;
+        }
+
         api("/api/auth/me").then(account => {
             if (account.authenticated) showDashboard(account);
-        }).catch(() => { });
+            else showAuth();
+        }).catch(() => {
+            showAuth();
+        });
     </script>
 </body>
 
