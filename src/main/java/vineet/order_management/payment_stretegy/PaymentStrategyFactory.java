@@ -24,10 +24,7 @@ public class PaymentStrategyFactory {
         
         String key = paymentMethod.toUpperCase();
         
-        // If the user requested UPI but Razorpay is configured, use Razorpay
-        if ("UPI".equals(key) && razorpayEnabled) {
-            key = "RAZORPAY";
-        }
+        // Removed automatic override so the user can use the standard UPI QR scanner if they select "UPI"
         
         PaymentStrategy strategy = strategies.get(key);
         if (strategy == null) {
