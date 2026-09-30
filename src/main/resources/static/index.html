@@ -5,13 +5,16 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#0f1923">
-    <meta name="description" content="Vineet E-Service — Book professional home services like house cleaning, home salon, and AC repair with instant email confirmation.">
+    <meta name="description"
+        content="Vineet E-Service — Book professional home services like house cleaning, home salon, and AC repair with instant email confirmation.">
     <title>Vineet E-Service | Home Services</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
         rel="stylesheet">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root {
             color-scheme: dark;
@@ -175,8 +178,15 @@
         }
 
         @keyframes pulse-dot {
-            0%, 100% { box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18); }
-            50% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0.06); }
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+            }
+
+            50% {
+                box-shadow: 0 0 0 8px rgba(34, 197, 94, 0.06);
+            }
         }
 
         /* ============================== LOGIN ============================== */
@@ -526,13 +536,28 @@
             animation: card-in .5s ease-out both;
         }
 
-        .service-card:nth-child(1) { animation-delay: .08s; }
-        .service-card:nth-child(2) { animation-delay: .16s; }
-        .service-card:nth-child(3) { animation-delay: .24s; }
+        .service-card:nth-child(1) {
+            animation-delay: .08s;
+        }
+
+        .service-card:nth-child(2) {
+            animation-delay: .16s;
+        }
+
+        .service-card:nth-child(3) {
+            animation-delay: .24s;
+        }
 
         @keyframes card-in {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .service-card:hover {
@@ -876,11 +901,30 @@
             font-weight: 700;
         }
 
-        .status-PLACED { color: #3b82f6; background: #eff6ff; }
-        .status-CONFIRMED { color: #8b5cf6; background: #f5f3ff; }
-        .status-SHIPPED { color: #f59e0b; background: #fffbeb; }
-        .status-DELIVERED { color: #22c55e; background: #f0fdf4; }
-        .status-CANCELLED { color: #ef4444; background: #fef2f2; }
+        .status-PLACED {
+            color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .status-CONFIRMED {
+            color: #8b5cf6;
+            background: #f5f3ff;
+        }
+
+        .status-SHIPPED {
+            color: #f59e0b;
+            background: #fffbeb;
+        }
+
+        .status-DELIVERED {
+            color: #22c55e;
+            background: #f0fdf4;
+        }
+
+        .status-CANCELLED {
+            color: #ef4444;
+            background: #fef2f2;
+        }
 
         .empty-state {
             padding: 28px 0;
@@ -1058,7 +1102,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .spinner {
@@ -1072,6 +1118,7 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
+
             *,
             *::before,
             *::after {
@@ -1080,6 +1127,310 @@
                 scroll-behavior: auto !important;
                 transition-duration: .01ms !important;
             }
+        }
+
+        /* ============================== UPI CHECKOUT MODAL ============================== */
+        .checkout-overlay {
+            position: fixed;
+            z-index: 200;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .3s ease, visibility .3s ease;
+        }
+
+        .checkout-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .checkout-modal {
+            width: min(100%, 420px);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: var(--radius);
+            background: var(--bg-card);
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5), 0 0 60px rgba(99, 102, 241, 0.1);
+            transform: translateY(20px) scale(0.96);
+            transition: transform .3s ease;
+            overflow: hidden;
+        }
+
+        .checkout-overlay.active .checkout-modal {
+            transform: translateY(0) scale(1);
+        }
+
+        .checkout-header {
+            padding: 28px 28px 0;
+            text-align: center;
+        }
+
+        .checkout-header .checkout-icon {
+            display: inline-flex;
+            width: 56px;
+            height: 56px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.12);
+            font-size: 26px;
+            margin-bottom: 16px;
+        }
+
+        .checkout-header h3 {
+            margin: 0;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .checkout-header p {
+            margin: 6px 0 0;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .checkout-amount {
+            margin: 24px 28px;
+            padding: 16px;
+            border-radius: var(--radius-sm);
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.08));
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            text-align: center;
+        }
+
+        .checkout-amount .label {
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .checkout-amount .amount {
+            display: block;
+            margin-top: 4px;
+            font-family: "Space Grotesk", sans-serif;
+            font-size: 36px;
+            font-weight: 700;
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .checkout-qr {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0 28px;
+        }
+
+        .checkout-qr-box {
+            padding: 16px;
+            border-radius: var(--radius-sm);
+            background: #fff;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .checkout-qr-label {
+            margin-top: 14px;
+            color: var(--text-muted);
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .checkout-divider {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 20px 28px;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .checkout-divider::before,
+        .checkout-divider::after {
+            flex: 1;
+            height: 1px;
+            content: "";
+            background: var(--border);
+        }
+
+        .checkout-order-info {
+            margin: 0 28px;
+            padding: 14px 16px;
+            border-radius: var(--radius-xs);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+        }
+
+        .checkout-order-info .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+            font-size: 13px;
+        }
+
+        .checkout-order-info .info-row .info-label {
+            color: var(--text-secondary);
+        }
+
+        .checkout-order-info .info-row .info-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .checkout-actions {
+            padding: 24px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .checkout-done-btn {
+            display: flex;
+            width: 100%;
+            min-height: 48px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: 0;
+            border-radius: var(--radius-xs);
+            color: #fff;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            cursor: pointer;
+            font: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            transition: transform .18s ease, box-shadow .18s ease;
+        }
+
+        .checkout-done-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
+        }
+
+        .checkout-cancel-btn {
+            display: flex;
+            width: 100%;
+            min-height: 42px;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xs);
+            color: var(--text-secondary);
+            background: transparent;
+            cursor: pointer;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            transition: border-color .18s ease, color .18s ease;
+        }
+
+        .checkout-cancel-btn:hover {
+            border-color: var(--text-muted);
+            color: var(--text-primary);
+        }
+
+        .checkout-timer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .checkout-timer .timer-value {
+            color: var(--coral);
+            font-weight: 700;
+            font-family: "Space Grotesk", sans-serif;
+        }
+
+        @keyframes pulse-glow {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+            }
+
+            50% {
+                box-shadow: 0 0 0 8px rgba(99, 102, 241, 0.1);
+            }
+        }
+
+        .checkout-qr-box {
+            animation: pulse-glow 2.5s ease-in-out infinite;
+        }
+
+        /* ============================== PAYMENT METHOD SELECTOR ============================== */
+        .payment-methods {
+            margin-bottom: 20px;
+        }
+
+        .payment-methods label.pm-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .pm-options {
+            display: flex;
+            gap: 10px;
+        }
+
+        .pm-option {
+            flex: 1;
+            position: relative;
+        }
+
+        .pm-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .pm-option .pm-card {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 12px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-xs);
+            background: var(--bg-input);
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: border-color .2s ease, color .2s ease, background .2s ease;
+        }
+
+        .pm-option .pm-card .pm-icon {
+            font-size: 18px;
+        }
+
+        .pm-option input[type="radio"]:checked+.pm-card {
+            border-color: var(--accent);
+            color: var(--text-primary);
+            background: rgba(99, 102, 241, 0.08);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .pm-option .pm-card:hover {
+            border-color: var(--accent-hover);
+            color: var(--text-primary);
         }
     </style>
 </head>
@@ -1211,6 +1562,19 @@
                     <label for="modal-quantity">How many sessions?</label>
                     <input type="number" id="modal-quantity" min="1" max="100" value="1">
                 </div>
+                <div class="payment-methods">
+                    <label class="pm-label">Payment Method</label>
+                    <div class="pm-options">
+                        <label class="pm-option">
+                            <input type="radio" name="paymentMethod" value="UPI" checked>
+                            <div class="pm-card"><span class="pm-icon">📱</span> UPI</div>
+                        </label>
+                        <label class="pm-option">
+                            <input type="radio" name="paymentMethod" value="COD">
+                            <div class="pm-card"><span class="pm-icon">💵</span> COD</div>
+                        </label>
+                    </div>
+                </div>
                 <div class="modal-actions">
                     <button class="cancel-btn" id="modal-cancel" type="button">Cancel</button>
                     <button class="submit" id="modal-confirm" type="button">
@@ -1218,6 +1582,38 @@
                     </button>
                 </div>
                 <p class="modal-status" id="modal-status"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- UPI Checkout Modal -->
+    <div class="checkout-overlay" id="checkout-overlay">
+        <div class="checkout-modal">
+            <div class="checkout-header">
+                <div class="checkout-icon">💳</div>
+                <h3>Complete Payment</h3>
+                <p>Scan the QR code using any UPI app to pay</p>
+            </div>
+            <div class="checkout-amount">
+                <span class="label">Amount to Pay</span>
+                <span class="amount" id="checkout-amount"></span>
+            </div>
+            <div class="checkout-qr">
+                <div class="checkout-qr-box" id="checkout-qr"></div>
+                <p class="checkout-qr-label">Google Pay · PhonePe · Paytm · BHIM</p>
+            </div>
+            <div class="checkout-divider">Order Details</div>
+            <div class="checkout-order-info">
+                <div class="info-row"><span class="info-label">Order ID</span><span class="info-value"
+                        id="checkout-ref"></span></div>
+                <div class="info-row"><span class="info-label">Service</span><span class="info-value"
+                        id="checkout-service"></span></div>
+                <div class="info-row"><span class="info-label">Quantity</span><span class="info-value"
+                        id="checkout-qty"></span></div>
+            </div>
+            <p class="checkout-timer">Payment expires in <span class="timer-value" id="checkout-timer">10:00</span></p>
+            <div class="checkout-actions">
+                <button class="checkout-cancel-btn" id="checkout-cancel" type="button">Close</button>
             </div>
         </div>
     </div>
@@ -1365,6 +1761,7 @@
             if (!selectedProduct) return;
             const quantity = Number(modalQuantity.value);
             if (quantity < 1) return;
+            const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
 
             modalConfirm.disabled = true;
             modalConfirm.innerHTML = '<span class="spinner"></span> Placing order...';
@@ -1374,32 +1771,170 @@
             try {
                 const booking = await api("/api/bookings", {
                     method: "POST", body: JSON.stringify({
-                        productId: selectedProduct.id, quantity
+                        productId: selectedProduct.id, quantity, paymentMethod
                     })
                 });
+                const bookedProduct = { ...selectedProduct };
                 closeBookingModal();
 
-                const msg = document.querySelector("#booking-message");
-                if (booking.emailSent) {
-                    msg.innerHTML = `<span>✅</span><span>Booking <strong>${escapeHtml(booking.reference)}</strong> confirmed! A confirmation email has been sent to your inbox.</span>`;
+                const showSuccess = () => {
+                    const msg = document.querySelector("#booking-message");
+                    if (booking.emailSent) {
+                        msg.innerHTML = `<span>✅</span><span>Booking <strong>${escapeHtml(booking.reference)}</strong> confirmed! A confirmation email has been sent to your inbox.</span>`;
+                    } else {
+                        msg.innerHTML = `<span>✅</span><span>Booking <strong>${escapeHtml(booking.reference)}</strong> confirmed!</span>`;
+                    }
+                    msg.className = "booking-message success";
+                    setTimeout(() => { msg.textContent = ""; msg.className = "booking-message"; }, 8000);
+                    loadDashboard();
+                };
+
+                if (booking.paymentId === "COD") {
+                    showSuccess();
+                } else if (booking.paymentId && booking.paymentId.startsWith("order_")) {
+                    const options = {
+                        key: "rzp_test_TiJpMMRLL7JNvr", // Matched with application.properties
+                        amount: bookedProduct.price * quantity * 100,
+                        currency: "INR",
+                        name: "Vineet E-Service",
+                        description: bookedProduct.name,
+                        order_id: booking.paymentId,
+                        handler: async function (response) {
+                            try {
+                                await api(`/api/bookings/${booking.id}/verify`, {
+                                    method: "POST",
+                                    body: JSON.stringify({
+                                        razorpay_payment_id: response.razorpay_payment_id,
+                                        razorpay_order_id: response.razorpay_order_id,
+                                        razorpay_signature: response.razorpay_signature
+                                    })
+                                });
+                                showSuccess();
+                            } catch (e) {
+                                alert("Payment verification failed. " + e.message);
+                                loadDashboard();
+                            }
+                        },
+                        prefill: {
+                            name: document.querySelector("#account-email").textContent,
+                            email: document.querySelector("#account-email").textContent
+                        },
+                        theme: {
+                            color: "#6366f1"
+                        },
+                        modal: {
+                            ondismiss: async function() {
+                                try {
+                                    await api(`/api/bookings/${booking.id}/cancel`, { method: "POST" });
+                                } catch (e) {
+                                    console.error("Failed to cancel order on dismiss:", e);
+                                }
+                                loadDashboard();
+                            }
+                        }
+                    };
+                    const rzp = new Razorpay(options);
+                    rzp.on('payment.failed', async function (response) {
+                        alert("Payment failed: " + response.error.description);
+                        try {
+                            await api(`/api/bookings/${booking.id}/cancel`, { method: "POST" });
+                        } catch (e) {
+                            console.error("Failed to cancel order on failure:", e);
+                        }
+                        loadDashboard();
+                    });
+                    rzp.open();
+                } else if (booking.paymentId && booking.paymentId.startsWith("upi://")) {
+                    openUpiCheckout(booking, bookedProduct.name, quantity, showSuccess);
                 } else {
-                    msg.innerHTML = `<span>✅</span><span>Booking <strong>${escapeHtml(booking.reference)}</strong> confirmed! Email notification is not configured yet.</span>`;
+                    showSuccess();
                 }
-                msg.className = "booking-message success";
 
-                // Clear the success message after 8 seconds
-                setTimeout(() => {
-                    msg.textContent = "";
-                    msg.className = "booking-message";
-                }, 8000);
-
-                await loadDashboard();
             } catch (error) {
                 modalStatus.textContent = error.message;
                 modalStatus.className = "modal-status error";
                 modalConfirm.disabled = false;
                 modalConfirm.innerHTML = 'Confirm Booking <span class="submit-arrow" aria-hidden="true">&#8594;</span>';
             }
+        });
+
+        // ============================== UPI CHECKOUT ==============================
+        let checkoutTimerInterval = null;
+        const checkoutOverlay = document.querySelector("#checkout-overlay");
+
+        function openUpiCheckout(booking, serviceName, quantity, onSuccess) {
+            document.querySelector("#checkout-amount").textContent = currency.format(booking.total);
+            document.querySelector("#checkout-ref").textContent = booking.reference;
+            document.querySelector("#checkout-service").textContent = serviceName;
+            document.querySelector("#checkout-qty").textContent = quantity;
+
+            // Clear any previous QR code
+            const qrContainer = document.querySelector("#checkout-qr");
+            qrContainer.innerHTML = "";
+
+            // Generate QR code from UPI link
+            new QRCode(qrContainer, {
+                text: booking.paymentId,
+                width: 200,
+                height: 200,
+                colorDark: "#1a1a2e",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            // Start 10-minute countdown timer
+            let secondsLeft = 600;
+            const timerEl = document.querySelector("#checkout-timer");
+            timerEl.textContent = "10:00";
+
+            if (checkoutTimerInterval) clearInterval(checkoutTimerInterval);
+            checkoutTimerInterval = setInterval(() => {
+                secondsLeft--;
+                const m = Math.floor(secondsLeft / 60);
+                const s = secondsLeft % 60;
+                timerEl.textContent = `${m}:${String(s).padStart(2, '0')}`;
+                if (secondsLeft <= 0) {
+                    clearInterval(checkoutTimerInterval);
+                    closeUpiCheckout();
+                }
+            }, 1000);
+
+            // Show the overlay
+            checkoutOverlay.classList.add("active");
+            document.body.style.overflow = "hidden";
+
+            // Close button — cancel the order if user doesn't pay
+            const cancelBtn = document.querySelector("#checkout-cancel");
+
+            const handleCancel = async () => {
+                closeUpiCheckout();
+                cancelBtn.removeEventListener("click", handleCancel);
+                try {
+                    await api(`/api/bookings/${booking.id}/cancel`, { method: "POST" });
+                } catch (e) {
+                    console.error("Failed to cancel order:", e);
+                }
+                loadDashboard();
+            };
+
+            cancelBtn.addEventListener("click", handleCancel);
+        }
+
+        function closeUpiCheckout() {
+            checkoutOverlay.classList.remove("active");
+            document.body.style.overflow = "";
+            if (checkoutTimerInterval) {
+                clearInterval(checkoutTimerInterval);
+                checkoutTimerInterval = null;
+            }
+        }
+
+        checkoutOverlay.addEventListener("click", event => {
+            if (event.target === checkoutOverlay) closeUpiCheckout();
+        });
+
+        document.addEventListener("keydown", event => {
+            if (event.key === "Escape" && checkoutOverlay.classList.contains("active")) closeUpiCheckout();
         });
 
         // ============================== SERVICE CARD CLICK ==============================

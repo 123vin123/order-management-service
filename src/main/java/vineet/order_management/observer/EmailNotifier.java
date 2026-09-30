@@ -17,6 +17,10 @@ public class EmailNotifier implements OrderObserver {
 
     @Override
     public void onOrderStatusChange(Booking order, OrderStatus oldStatus, OrderStatus newStatus) {
+        if (newStatus == OrderStatus.CANCELLED) {
+            return;
+        }
+
         System.out.println("  [Email] Order " + order.getReference() + " moved from "
                 + oldStatus + " to " + newStatus
                 + " | Notifying: " + order.getAccount().getEmail());
